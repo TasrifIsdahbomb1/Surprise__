@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday, My Mirror</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Fonts --- */
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&family=Patrick+Hand&display=swap');
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.9); 
+            --text-primary: #444; 
+            --text-secondary: #666;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-primary);
+            overflow: hidden; 
+            background-color: #ffffff; 
+        }
+        
+        .handwritten {
+            font-family: 'Patrick Hand', cursive; 
+        }
+
+        /* --- 1. Background (Whitish-Pink Dream) --- */
+        .gradient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+            background: linear-gradient(-45deg, #fff0f5, #ffffff, #fce7f3, #f3e8ff, #ffffff);
+            background-size: 400% 400%;
+            animation: gradientAnim 15s ease infinite; 
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px); 
+            opacity: 0.7; 
+            animation: floatOrb 25s infinite ease-in-out alternate;
+        }
+        .orb-1 { width: 60vh; height: 60vh; background: #fbcfe8; top: -15%; left: -15%; animation-duration: 30s; } 
+        .orb-2 { width: 50vh; height: 50vh; background: #fff1f2; bottom: -10%; right: -10%; animation-duration: 22s; animation-delay: -7s; } 
+        .orb-3 { width: 40vh; height: 40vh; background: #eff6ff; top: 40%; left: 40%; animation-duration: 28s; animation-delay: -12s; } 
+
+        @keyframes gradientAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 40px) scale(1.1); }
+        }
+
+        /* --- 2. Particles --- */
+        .particle {
+            position: absolute;
+            font-size: 2.5rem; 
+            opacity: 0.6; 
+            animation: floatParticle 18s linear infinite; 
+            z-index: -1;
+        }
+        @keyframes floatParticle {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- 3. Glass Card --- */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px); 
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px 0 rgba(255, 182, 193, 0.2); /* Soft pink shadow */
+        }
+
+        /* --- 4. NEW ANIMATION: Dreamy Mist Reveal --- */
+        /* Materializes from a blur and slight side slide */
+        @keyframes mistReveal {
+            0% { 
+                opacity: 0;
+                transform: translateX(30px) scale(0.95);
+                filter: blur(10px);
+            }
+            100% { 
+                opacity: 1;
+                transform: translateX(0) scale(1);
+                filter: blur(0);
+            }
+        }
+        
+        .animate-mist {
+            animation: mistReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Typing Effect Container */
+        .typewriter-container {
+            display: inline-block;
+            overflow: hidden;
+            white-space: pre-wrap; 
+        }
+        
+        .cursor-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Candle Flame */
+        .flame {
+            transform-origin: center bottom;
+            animation: burn 0.1s infinite alternate;
+            box-shadow: 0 0 15px #facc15, 0 0 30px #f97316; 
+        }
+        @keyframes burn {
+            0% { transform: scale(1) rotate(-2deg) skewX(2deg); opacity: 0.9; }
+            100% { transform: scale(1.1) rotate(2deg) skewX(-2deg); opacity: 1; }
+        }
+
+        .text-glow { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); } 
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="gradient-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div id="particle-container"></div> 
+
+    <div id="app-container" class="w-full max-w-2xl relative z-10 transition-all duration-300">
+        <!-- Content injected via JS -->
+    </div>
+
+    <script>
+        // --- Globals ---
+        let currentPage = 0;
+        let messageStep = 0;
+
+        // --- Icons ---
+        const icons = {
+            Mirror: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+            Arrow: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
+            Heart: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#EC4899" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+            Sparkles: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#FACC15" stroke="none"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`,
+            Lock: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C084FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+            Repeat: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>`
+        };
+
+        // --- Data ---
+        const messages = [
+            {
+                title: "Technically Cousins, Actually Us",
+                icon: icons.Heart,
+                text: "Look, family trees are weird. We're cousins on paper, but you're the sister I actually picked. You tease me relentlessly, but you're also the first person I'd hide a body with. That's real loyalty.",
+                bg: "bg-white/60" 
+            },
+            {
+                title: "Same Chaos, Different Font",
+                icon: icons.Mirror,
+                text: "Sometimes I look at you and it's scary. We share the same brain cells, the same weird humor, just in different genders. It’s 100% vibe, zero weirdness, and honestly? My favorite relationship ever.",
+                bg: "bg-pink-50/60"
+            },
+            {
+                title: "The Quiet Rebellion",
+                icon: icons.Lock,
+                text: "Our parents can't stand each other, and they definitely hate us talking. But us being this close? That's our protest. Being best friends is how we win. Let them have the drama; we have each other.",
+                bg: "bg-purple-50/60"
+            },
+            {
+                title: "The 5-Minute Wall",
+                icon: `🏠`,
+                text: "It is actually insane that you live five minutes away and I can't just walk through your front door. It’s the dumbest tragedy in history, but we make it work. Somehow.",
+                bg: "bg-blue-50/60"
+            },
+            {
+                title: "7 Years, 0 Fade",
+                icon: icons.Sparkles,
+                text: "We haven't met in seven years. Seven. And yet, when we talk, it's like no time passed at all. We didn't drift apart; we just got really good at telepathy.",
+                bg: "bg-yellow-50/60"
+            },
+            {
+                title: "My Human Charger",
+                icon: `🔋`,
+                text: "You are literally my reset button. When everything is loud and annoying, talking to you just... fixes it. You're the one person I don't have to explain myself to.",
+                bg: "bg-green-50/60"
+            },
+            {
+                title: "Love You (You're Annoying)",
+                icon: `🙄`,
+                text: "I trust you with my darkest secrets, but wow, you know exactly how to push my buttons. I guess that's the sister part showing up. I wouldn't trade your teasing for anything.",
+                bg: "bg-purple-50/60"
+            },
+            {
+                title: "I'm Here. Period.",
+                icon: `🤝`,
+                text: "It doesn't matter what the rules are or how far away we are. If you need me, I'm there. No questions, no hesitation. We figure it out. Always.",
+                bg: "bg-red-50/60"
+            },
+            {
+                title: "Happy Birthday, Bestie",
+                icon: `🎂`,
+                text: "To my mirror, my vault, and my favorite headache. I miss you like crazy, I love you tons, and I am counting down the seconds until we break that 5-minute barrier.",
+                bg: "bg-white/70"
+            }
+        ];
+
+        // --- Init Particles ---
+        function initParticles() {
+            const container = document.getElementById('particle-container');
+            const items = ['✨', '💖', '⭐', '🎈', '👑', '💫'];
+            
+            for(let i=0; i<20; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.innerText = items[Math.floor(Math.random() * items.length)];
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                p.style.animationDelay = (Math.random() * -20) + 's';
+                container.appendChild(p);
+            }
+        }
+
+        // --- Render Functions ---
+
+        function renderWelcome() {
+            return `
+                <div class="glass-card rounded-[2.5rem] p-8 md:p-12 text-center animate-mist flex flex-col items-center mx-4 border-t border-white/90">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-pink-300 to-purple-300 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(236,72,153,0.3)] animate-bounce">
+                        ${icons.Mirror}
+                    </div>
+                    <h1 class="text-5xl md:text-7xl font-extrabold mb-4 title-font tracking-tight text-pink-600 drop-shadow-lg">
+                        Happy Birthday!
+                    </h1>
+                    <p class="text-xl md:text-2xl font-light mb-8 handwritten opacity-90 leading-relaxed text-gray-700">
+                        To the sister I found in a cousin.<br>
+                        To my mirror image.<br>
+                        To the one person who makes a 5-minute distance feel like an ocean we're swimming across together.
+                    </p>
+                    <button onclick="nextPage()" class="group relative bg-fuchsia-500 text-white px-10 py-4 rounded-full font-bold text-xl shadow-[0_0_25px_rgba(200,50,150,0.2)] hover:scale-105 transition-all duration-300 flex items-center gap-3">
+                        Let's Talk Truths ${icons.Arrow}
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderMessages() {
+            const msg = messages[messageStep];
+            return `
+                <div class="w-full px-4 animate-mist">
+                    <div class="text-center mb-6">
+                        <span class="inline-block px-3 py-1 rounded-full bg-white/60 text-xs font-bold tracking-widest mb-2 border border-white/90 text-gray-700">
+                            TRUTH ${messageStep + 1} / ${messages.length}
+                        </span>
+                        <h2 class="text-3xl md:text-4xl font-bold title-font text-fuchsia-700 drop-shadow-lg">
+                            ${msg.title}
+                        </h2>
+                    </div>
+
+                    <div class="glass-card rounded-3xl p-8 md:p-12 text-center transform transition-all duration-500 ${msg.bg} border-t border-white/90 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-50"></div>
+                        
+                        <div class="text-6xl mb-6 filter drop-shadow-lg animate-pulse">${msg.icon}</div>
+                        
+                        <p class="text-xl md:text-2xl leading-relaxed font-medium text-gray-800 handwritten typewriter-container" id="typewriter-text"></p>
+                    </div>
+
+                    <div class="mt-8 flex justify-center">
+                        <button onclick="nextMessage()" class="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-pink-400/50 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 border border-white/90">
+                            ${messageStep < messages.length - 1 ? 'Next Vibe' : 'Make a Wish'} ${icons.Arrow}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function typeWriter(text, elementId) {
+            const element = document.getElementById(elementId);
+            if(!element) return;
+            element.innerHTML = ""; 
+            let i = 0;
+            const speed = 25; 
+
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    element.innerHTML += '<span class="cursor-blink text-gray-800">|</span>'; 
+                }
+            }
+            type();
+        }
+
+        let candles = [true, true, true];
+        function renderCake() {
+            const allBlown = candles.every(c => !c);
+            
+            return `
+                <div class="w-full text-center animate-mist relative z-10 px-4">
+                    <h2 class="text-4xl md:text-6xl font-bold title-font text-fuchsia-700 mb-12 text-glow leading-tight">
+                        ${allBlown ? "WISH GRANTED! ✨" : "Make a Wish, Sister!"}
+                    </h2>
+                    
+                    <div class="relative inline-block mt-8 scale-125 md:scale-150 transition-transform duration-500 hover:scale-[1.55]">
+                        <div class="w-64 h-6 bg-white/70 rounded-[50%] shadow-2xl backdrop-blur-md absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 border border-white/90"></div>
+                        
+                        <div class="w-56 h-28 bg-pink-100/90 border-4 border-pink-200 rounded-lg relative z-10 mx-auto flex items-center justify-center shadow-lg overflow-hidden backdrop-blur-sm">
+                            <span class="font-black text-pink-200/50 text-4xl select-none tracking-widest">BFF</span>
+                        </div>
+
+                        <div class="w-60 h-8 bg-purple-200 rounded-full absolute top-[0px] left-1/2 -translate-x-1/2 z-20 border-b-4 border-purple-300 shadow-md"></div>
+                        <div class="w-56 h-24 bg-pink-100 rounded-t-lg absolute -top-4 left-1/2 -translate-x-1/2 z-10 border-4 border-pink-200 flex justify-center pt-2">
+                            <div class="absolute -bottom-2 w-full flex justify-around">
+                                <div class="w-4 h-6 bg-purple-200 rounded-full"></div>
+                                <div class="w-4 h-9 bg-purple-200 rounded-full"></div>
+                                <div class="w-4 h-5 bg-purple-200 rounded-full"></div>
+                                <div class="w-4 h-7 bg-purple-200 rounded-full"></div>
+                            </div>
+                        </div>
+
+                        <div class="absolute -top-20 left-1/2 -translate-x-1/2 flex gap-6 z-30">
+                            ${candles.map((isOn, i) => `
+                                <div class="relative group cursor-pointer" onclick="blowCandle(${i})">
+                                    ${isOn ? `<div class="w-4 h-10 bg-gradient-to-t from-orange-400 via-yellow-300 to-white rounded-full absolute -top-8 left-1/2 -translate-x-1/2 flame shadow-[0_0_25px_orange]"></div>` 
+                                           : `<div class="absolute -top-12 left-1/2 -translate-x-1/2 text-2xl animate-pulse opacity-50">💨</div>`}
+                                    <div class="w-3 h-12 bg-white border border-gray-300 rounded shadow-sm relative overflow-hidden">
+                                        <div class="absolute top-2 w-full h-2 bg-pink-300 -skew-y-12"></div>
+                                        <div class="absolute top-6 w-full h-2 bg-pink-300 -skew-y-12"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    ${allBlown ? `<div class="mt-20 text-gray-700 font-bold animate-pulse text-xl">Loading vibes...</div>` : `<p class="mt-20 text-gray-600 font-medium">Tap the flames to blow them out!</p>`}
+                </div>
+            `;
+        }
+
+        function renderFinale() {
+            return `
+                <div class="glass-card rounded-[3rem] p-10 md:p-14 text-center animate-mist mx-4 relative overflow-hidden border-t border-white/90">
+                    <div class="absolute inset-0 pointer-events-none opacity-40">
+                        ${Array.from({length:20}).map(() => `<div class="absolute text-2xl animate-pulse" style="top:${Math.random()*100}%;left:${Math.random()*100}%">🎉</div>`).join('')}
+                    </div>
+
+                    <h1 class="text-5xl md:text-7xl font-bold mb-6 title-font text-fuchsia-700 drop-shadow-md">
+                        My Forever Person
+                    </h1>
+                    
+                    <div class="flex justify-center gap-6 mb-8">
+                        <div class="animate-bounce" style="animation-delay:0s">${icons.Heart}</div>
+                        <div class="animate-bounce" style="animation-delay:0.1s">${icons.Mirror}</div>
+                        <div class="animate-bounce" style="animation-delay:0.2s">${icons.Heart}</div>
+                    </div>
+
+                    <p class="text-2xl md:text-3xl text-gray-700 mb-10 handwritten leading-relaxed font-bold">
+                        "They can keep us apart by five minutes and a mountain of drama, but they can't stop this. <br><br>
+                        You're my sister, my vibe, and my home. <br>
+                        <span class="text-pink-500">100% Vibe. 1000% Family.</span>"
+                    </p>
+
+                    <button onclick="location.reload()" class="bg-white text-fuchsia-700 hover:bg-fuchsia-50 px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2 mx-auto shadow-lg hover:scale-105">
+                outline: none;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 22px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        transition: 0.4s ease;
+        box-shadow: 0 0 25px #004cff70, 0 0 35px #00ffa260 inset;
+        border: 6px solid;
+        border-image: linear-gradient(135deg, #00eaff, #00ff9d) 1;
+        z-index: 10;
+    }
+    .start-btn:hover {
+        transform: scale(1.08);
+        box-shadow: 0 0 40px #00eaffaa, 0 0 60px #00ff9daa inset;
+    }
+    .msg-box {
+        display: none;
+        position: absolute;
+        width: 85%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.12);
+        padding: 30px;
+        border-radius: 20px;
+        color: white;
+        text-align: center;
+        backdrop-filter: blur(12px);
+        font-size: 19px;
+        animation: fadeIn 0.4s ease;
+        box-shadow: 0 0 25px rgba(0,255,200,0.4);
+    }
+    @keyframes fadeIn {
+        from {opacity: 0; transform: scale(0.8);}    
+        to   {opacity: 1; transform: scale(1);} 
+    }
+    .next-btn {
+        margin-top: 18px;
+        padding: 10px 22px;
+        font-size: 16px;
+        background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+        border: none;
+        outline: none;
+        border-radius: 30px;
+        cursor: pointer;
+        color: black;
+        font-weight: 600;
+        box-shadow: 0 0 10px #ff9a9e;
+        z-index: 10;
+    }
+</style>
+</head>
+<body>
+<script>
+    function createHeart() {
+        const heart = document.createElement("div");
+        heart.className = "heart";
+        heart.innerHTML = "💖";
+        heart.style.left = Math.random() * 100 + "vw";
+        heart.style.animationDuration = 5 + Math.random()*3 + "s";
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 7000);
+    }
+    setInterval(createHeart, 600);function createBalloon() {
+    const balloon = document.createElement("div");
+    balloon.className = "balloon";
+    balloon.style.bottom = "-100px";
+    balloon.style.left = Math.random() * 100 + "vw";
+    balloon.style.fontSize = 30 + Math.random() * 20 + "px";
+    const colors = ["🎈","🎉","🎊","💜","💛","💖"];
+    balloon.innerHTML = colors[Math.floor(Math.random() * colors.length)];
+    balloon.style.animation = `floatBalloon ${5 + Math.random()*5}s linear forwards`;
+    document.body.appendChild(balloon);
+    setTimeout(() => balloon.remove(), 12000);
+}
+setInterval(createBalloon, 700);
+
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes floatBalloon {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-600px) rotate(15deg); }
+    100% { transform: translateY(-1200px) rotate(-15deg); }
+}
+`;
+document.head.appendChild(style);
+
+function createConfetti() {
+    const conf = document.createElement("div");
+    conf.className = "confetti";
+    conf.style.width = conf.style.height = Math.random() * 8 + 4 + "px";
+    conf.style.backgroundColor = `hsl(${Math.random()*360}, 100%, 60%)`;
+    conf.style.left = Math.random()*100 + "vw";
+    conf.style.top = "-10px";
+    conf.style.opacity = Math.random();
+    conf.style.borderRadius = "50%";
+    conf.style.animation = `fallConfetti ${3 + Math.random()*3}s linear forwards`;
+    document.body.appendChild(conf);
+    setTimeout(() => conf.remove(), 6000);
+}
+setInterval(createConfetti, 150);
+
+const confettiStyle = document.createElement('style');
+confettiStyle.innerHTML = `
+@keyframes fallConfetti {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(800px) rotate(360deg); opacity: 0; }
+}
+`;
+document.head.appendChild(confettiStyle);
+
+</script><button class="start-btn" onclick="showMsg()">Open 💫✨</button>
+
+<div id="msgBox" class="msg-box"></div><script>
+    let step = 0;
+    const messages = [
+        "🎉💖 Happy Birthday, my beautiful sister 💖🎉<br>Another year of your life… another year that I’m grateful I get to spend with you.",
+        "You’re not just my sister… you’re my safe place, my best friend, my comfort person. I love you more than you will ever realise.",
+        "I wish today brings you the happiness you deserve… the peace you crave… and the love you give everyone, returned back to you a thousand times.",
+        "No matter how old we get, I’ll always protect you, hype you, annoy you, and love you endlessly. 💗"
+    ];
+
+    function showMsg() {
+        document.querySelector(".start-btn").style.display = "none";
+        const box = document.getElementById("msgBox");
+        box.style.display = "block";
+        box.innerHTML = messages[step] + "<br><button class='next-btn' onclick='nextMsg()'>Next</button>";
+    }
+
+    function nextMsg() {
+        const box = document.getElementById("msgBox");
+        step++;
+        if (step < messages.length) {
+            box.innerHTML = messages[step] + "<br><button class='next-btn' onclick='nextMsg()'>Next</button>";
+        } else {
+            box.innerHTML = "💗💗 I love you endlessly, my sister. Always. 💗💗";
+        }
+    }
+</script></body>
+</html>
